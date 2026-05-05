@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 
 import { type SelectableValue } from '@grafana/data';
-import { locationService } from '@grafana/runtime';
 import { Text } from '@grafana/ui';
 import { contextSrv } from 'app/core/services/context_srv';
 import { getUserOrganizations, setUserOrganization } from 'app/features/org/state/actions';
@@ -15,13 +14,20 @@ import { OrganizationSelect } from './OrganizationSelect';
 export function OrganizationSwitcher() {
   const dispatch = useDispatch();
   const orgs = useSelector((state) => state.organization.userOrgs);
-  const onSelectChange = (option: SelectableValue<UserOrg>) => {
-    if (option.value) {
-      setUserOrganization(option.value.orgId);
-      locationService.push(`/?orgId=${option.value.orgId}`);
-      // TODO how to reload the current page
-      window.location.reload();
+  const onSelectChange = async (option: SelectableValue<UserOrg>) => {
+    if (!option.value) {
+      return;
     }
+    // dispatch() actually runs the thunk. Calling setUserOrganization() without
+    // dispatching just builds the action and discards it. Await it so
+    // /api/user/using/:orgId completes before navigation and preferred-org persists.
+    try {
+      await dispatch(setUserOrganization(option.value.orgId));
+    } catch {
+      // backendSrv already displays an error toast; do not navigate on failure.
+      return;
+    }
+    window.location.assign(`/?orgId=${option.value.orgId}`);
   };
   useEffect(() => {
     if (
