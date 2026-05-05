@@ -86,7 +86,10 @@ func (r *MigrationRunner) Run(ctx context.Context, sess *xorm.Session, mg *migra
 		return fmt.Errorf("failed to check dualwrite state: %w", err)
 	}
 	if alreadyMigrated {
-		r.log.Debug("skipping migration: resources already on unified storage per dualwrite state",
+		r.log.Warn("skipping migration: resources already on unified storage per dualwrite state. "+
+			"If your data appears stale after upgrade, see https://github.com/grafana/grafana/issues/123616. "+
+			"To force re-migration, delete rows in kv_store with namespace 'unified.dualwrite' and remove dualwrite.json "+
+			"from the data directory.",
 			"resources", r.definition.ConfigResources())
 		return nil
 	}
